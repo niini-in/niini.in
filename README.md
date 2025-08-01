@@ -1,5 +1,8 @@
 # MiniShop - Microservices E-commerce Platform
 
+![CI/CD](https://img.shields.io/github/actions/workflow/status/niini-in/niini.in/ci-cd.yaml?label=CI)
+![ArgoCD](https://img.shields.io/badge/ArgoCD-sync--status-blue?logo=argo)
+
 A comprehensive microservices-based e-commerce platform built with modern technologies and cloud-native principles.
 
 ## 🏗️ Architecture Overview
@@ -236,13 +239,26 @@ npm test
 docker-compose -f docker-compose.test.yml up --abort-on-container-exit
 ```
 
-## 📚 Documentation
+## 📦 Microservices Overview
 
-- **[Architecture Guide](docs/architecture.md)** - System architecture overview
-- **[API Contracts](docs/api-contracts.md)** - API specifications
-- **[Deployment Guide](docs/deployment-guide.md)** - Production deployment
-- **[GitOps Guide](docs/gitops.md)** - GitOps workflow
-- **[Observability Guide](docs/observability.md)** - Monitoring and tracing
+| Service | Language | Description | Link |
+|---------|----------|-------------|------|
+| User Service | Java (Spring Boot) | Auth, registration, profile | [services/user-service](services/user-service/README.md) |
+| Product Service | Go | Product catalog, categories, inventory | [services/product-service](services/product-service/README.md) |
+| Order Service | Java (Spring Boot) | Order creation, cart, returns | [services/order-service](services/order-service/README.md) |
+| Payment Service | Python (FastAPI) | Payment processing, refunds | [services/payment-service](services/payment-service/README.md) |
+| Notification Service | Node.js | Email, SMS, push notifications | [services/notification-service](services/notification-service/README.md) |
+
+## 📚 Documentation Index
+
+- **[docs/QUICKSTART.md](docs/QUICKSTART.md)** - 5-min setup and common commands
+- **[docs/architecture.md](docs/architecture.md)** - High-level architecture
+- **[docs/deployment-guide.md](docs/deployment-guide.md)** - Local and cloud deployment
+- **[docs/gitops.md](docs/gitops.md)** - CI/CD and ArgoCD pipeline
+- **[docs/api-contracts.md](docs/api-contracts.md)** - Full API contracts
+- **[docs/observability.md](docs/observability.md)** - Monitoring, tracing, alerts
+- **[docs/implementation-guide.md](docs/implementation-guide.md)** - MVP implementation by service
+- **[docs/TODO.md](docs/TODO.md)** - Development backlog and checklist
 
 ## 🤝 Contributing
 
