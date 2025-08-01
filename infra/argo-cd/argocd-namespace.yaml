@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: argocd
+  labels:
+    name: argocd
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: minishop-dev
+  labels:
+    name: minishop-dev
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: minishop-staging
+  labels:
+    name: minishop-staging
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: minishop-prod
+  labels:
+    name: minishop-prod

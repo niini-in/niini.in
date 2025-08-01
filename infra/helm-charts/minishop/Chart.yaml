@@ -1,0 +1,38 @@
+apiVersion: v2
+name: minishop
+description: A Helm chart for MiniShop microservices platform
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+home: https://minishop.com
+sources:
+  - https://github.com/your-org/ministore
+maintainers:
+  - name: MiniShop Team
+    email: dev@minishop.com
+keywords:
+  - microservices
+  - ecommerce
+  - kubernetes
+  - helm
+dependencies:
+  - name: postgresql
+    version: 12.1.2
+    repository: https://charts.bitnami.com/bitnami
+    condition: postgresql.enabled
+  - name: redis
+    version: 17.4.3
+    repository: https://charts.bitnami.com/bitnami
+    condition: redis.enabled
+  - name: kafka
+    version: 20.0.6
+    repository: https://charts.bitnami.com/bitnami
+    condition: kafka.enabled
+  - name: prometheus
+    version: 19.3.2
+    repository: https://prometheus-community.github.io/helm-charts
+    condition: prometheus.enabled
+  - name: grafana
+    version: 6.50.3
+    repository: https://grafana.github.io/helm-charts
+    condition: grafana.enabled

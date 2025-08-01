@@ -1,0 +1,37 @@
+{{- range $serviceName, $service := .Values -}}
+{{- if and (kindIs "map" $service) $service.enabled $service.autoscaling.enabled -}}
+{{- if has $serviceName (list "userService" "productService" "orderService" "paymentService" "notificationService") -}}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "minishop.serviceName" (dict "serviceName" $serviceName "context" $) }}
+  labels:
+    {{- include "minishop.serviceLabels" (dict "serviceName" $serviceName "context" $) | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "minishop.serviceName" (dict "serviceName" $serviceName "context" $) }}
+  minReplicas: {{ $service.autoscaling.minReplicas }}
+  maxReplicas: {{ $service.autoscaling.maxReplicas }}
+  metrics:
+    {{- if $service.autoscaling.targetCPUUtilization }}
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ $service.autoscaling.targetCPUUtilization }}
+    {{- end }}
+    {{- if $service.autoscaling.targetMemoryUtilization }}
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: {{ $service.autoscaling.targetMemoryUtilization }}
+    {{- end }}
+---
+{{- end }}
+{{- end }}
+{{- end }}

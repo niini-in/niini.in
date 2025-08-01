@@ -1,0 +1,165 @@
+global:
+  environment: staging
+  domain: staging.minishop.com
+  imageRegistry: your-registry.com/minishop
+  
+postgresql:
+  enabled: true
+  auth:
+    postgresPassword: staging-password
+    database: minishop_staging
+  persistence:
+    enabled: true
+    size: 20Gi
+
+redis:
+  enabled: true
+  auth:
+    enabled: true
+    password: staging-redis-password
+  master:
+    persistence:
+      enabled: true
+      size: 10Gi
+
+kafka:
+  enabled: true
+  auth:
+    enabled: false
+  persistence:
+    enabled: true
+    size: 20Gi
+
+prometheus:
+  enabled: true
+  server:
+    persistentVolume:
+      enabled: true
+      size: 50Gi
+
+grafana:
+  enabled: true
+  persistence:
+    enabled: true
+    size: 10Gi
+  adminPassword: staging-admin
+
+userService:
+  enabled: true
+  replicaCount: 2
+  image:
+    repository: minishop/user-service
+    tag: staging
+  service:
+    port: 8081
+  resources:
+    limits:
+      cpu: 750m
+      memory: 768Mi
+    requests:
+      cpu: 375m
+      memory: 384Mi
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilization: 75
+
+productService:
+  enabled: true
+  replicaCount: 2
+  image:
+    repository: minishop/product-service
+    tag: staging
+  service:
+    port: 8082
+  resources:
+    limits:
+      cpu: 750m
+      memory: 768Mi
+    requests:
+      cpu: 375m
+      memory: 384Mi
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilization: 75
+
+orderService:
+  enabled: true
+  replicaCount: 2
+  image:
+    repository: minishop/order-service
+    tag: staging
+  service:
+    port: 8083
+  resources:
+    limits:
+      cpu: 750m
+      memory: 768Mi
+    requests:
+      cpu: 375m
+      memory: 384Mi
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilization: 75
+
+paymentService:
+  enabled: true
+  replicaCount: 2
+  image:
+    repository: minishop/payment-service
+    tag: staging
+  service:
+    port: 8084
+  resources:
+    limits:
+      cpu: 750m
+      memory: 768Mi
+    requests:
+      cpu: 375m
+      memory: 384Mi
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilization: 75
+
+notificationService:
+  enabled: true
+  replicaCount: 2
+  image:
+    repository: minishop/notification-service
+    tag: staging
+  service:
+    port: 8085
+  resources:
+    limits:
+      cpu: 750m
+      memory: 768Mi
+    requests:
+      cpu: 375m
+      memory: 384Mi
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 5
+    targetCPUUtilization: 75
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-staging
+  hosts:
+    - host: staging.minishop.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: minishop-tls-staging
+      hosts:
+        - staging.minishop.com

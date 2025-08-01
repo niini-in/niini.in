@@ -1,0 +1,134 @@
+global:
+  environment: dev
+  domain: dev.minishop.local
+  imageRegistry: localhost:5000
+  
+postgresql:
+  enabled: true
+  auth:
+    postgresPassword: postgres
+    database: minishop_dev
+  persistence:
+    enabled: false
+
+redis:
+  enabled: true
+  auth:
+    enabled: false
+  master:
+    persistence:
+      enabled: false
+
+kafka:
+  enabled: true
+  auth:
+    enabled: false
+  persistence:
+    enabled: false
+
+prometheus:
+  enabled: true
+  server:
+    persistentVolume:
+      enabled: false
+
+grafana:
+  enabled: true
+  persistence:
+    enabled: false
+  adminPassword: admin
+
+userService:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: minishop/user-service
+    tag: latest
+  service:
+    port: 8081
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+
+productService:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: minishop/product-service
+    tag: latest
+  service:
+    port: 8082
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+
+orderService:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: minishop/order-service
+    tag: latest
+  service:
+    port: 8083
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+
+paymentService:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: minishop/payment-service
+    tag: latest
+  service:
+    port: 8084
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+
+notificationService:
+  enabled: true
+  replicaCount: 1
+  image:
+    repository: minishop/notification-service
+    tag: latest
+  service:
+    port: 8085
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 250m
+      memory: 256Mi
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-staging
+  hosts:
+    - host: dev.minishop.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: minishop-tls-dev
+      hosts:
+        - dev.minishop.local
