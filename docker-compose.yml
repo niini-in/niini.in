@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   # API Gateway
@@ -217,4 +217,5 @@ volumes:
 
 networks:
   minishop-network:
+    name: minishop-network
     driver: bridge
