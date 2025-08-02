@@ -4,6 +4,7 @@ const helmet = require('helmet');
 const winston = require('winston');
 const swaggerJsdoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
+const promClient = require('prom-client');
 require('dotenv').config();
 
 const notificationRoutes = require('./routes/notifications');
@@ -19,6 +20,24 @@ const logger = winston.createLogger({
   transports: [
     new winston.transports.Console()
   ]
+});
+
+// Prometheus metrics setup
+const register = new promClient.Registry();
+promClient.collectDefaultMetrics({ register });
+
+const httpRequestDuration = new promClient.Histogram({
+  name: 'notification_http_request_duration_seconds',
+  help: 'Duration of HTTP requests in seconds',
+  labelNames: ['method', 'route', 'status'],
+  registers: [register]
+});
+
+const httpRequestsTotal = new promClient.Counter({
+  name: 'notification_http_requests_total',
+  help: 'Total number of HTTP requests',
+  labelNames: ['method', 'route', 'status'],
+  registers: [register]
 });
 
 const app = express();
@@ -56,6 +75,27 @@ const specs = swaggerJsdoc(swaggerOptions);
 app.use(helmet());
 app.use(cors());
 app.use(express.json());
+
+// Metrics middleware
+app.use((req, res, next) => {
+  const start = Date.now();
+  
+  res.on('finish', () => {
+    const duration = (Date.now() - start) / 1000;
+    const route = req.route ? req.route.path : req.path;
+    
+    httpRequestDuration.labels(req.method, route, res.statusCode).observe(duration);
+    httpRequestsTotal.labels(req.method, route, res.statusCode).inc();
+  });
+  
+  next();
+});
+
+// Metrics endpoint
+app.get('/metrics', async (req, res) => {
+  res.set('Content-Type', register.contentType);
+  res.end(await register.metrics());
+});
 
 // Swagger documentation
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(specs));

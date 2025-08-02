@@ -1,0 +1,115 @@
+groups:
+- name: minishop-critical
+  rules:
+  - alert: ServiceDown
+    expr: up{job=~".*service"} == 0
+    for: 1m
+    labels:
+      severity: critical
+      team: platform
+    annotations:
+      summary: "Service {{ $labels.job }} is down"
+      description: "{{ $labels.job }} has been down for more than 1 minute"
+
+  - alert: HighErrorRate
+    expr: |
+      (
+        sum(rate(http_requests_total{status=~"5.."}[5m])) by (service, job)
+        /
+        sum(rate(http_requests_total[5m])) by (service, job)
+      ) > 0.05
+    for: 5m
+    labels:
+      severity: critical
+      team: platform
+    annotations:
+      summary: "High error rate in {{ $labels.service }}"
+      description: "{{ $labels.service }} has error rate above 5% for 5 minutes"
+
+  - alert: HighLatency
+    expr: |
+      histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (service, le)) > 1
+    for: 5m
+    labels:
+      severity: critical
+      team: platform
+    annotations:
+      summary: "High latency in {{ $labels.service }}"
+      description: "{{ $labels.service }} 95th percentile latency is above 1 second"
+
+  - alert: HighMemoryUsage
+    expr: process_resident_memory_bytes / 1024 / 1024 > 512
+    for: 10m
+    labels:
+      severity: warning
+      team: platform
+    annotations:
+      summary: "High memory usage in {{ $labels.service }}"
+      description: "{{ $labels.service }} memory usage is above 512MB"
+
+  - alert: DatabaseConnectionsHigh
+    expr: postgresql_connections_active > 80
+    for: 5m
+    labels:
+      severity: warning
+      team: platform
+    annotations:
+      summary: "High PostgreSQL connections"
+      description: "PostgreSQL has {{ $value }} active connections"
+
+- name: minishop-business
+  rules:
+  - alert: LowOrderVolume
+    expr: sum(rate(minishop_orders_total[1h])) < 10
+    for: 30m
+    labels:
+      severity: warning
+      team: business
+    annotations:
+      summary: "Low order volume"
+      description: "Order volume is below 10 orders per hour"
+
+  - alert: HighCartAbandonment
+    expr: |
+      (
+        1 - (sum(rate(minishop_orders_total[1h])) / sum(rate(minishop_cart_additions_total[1h])))
+      ) > 0.7
+    for: 1h
+    labels:
+      severity: warning
+      team: business
+    annotations:
+      summary: "High cart abandonment rate"
+      description: "Cart abandonment rate is above 70%"
+
+- name: minishop-infrastructure
+  rules:
+  - alert: PostgreSQLDown
+    expr: up{job="postgres-exporter"} == 0
+    for: 1m
+    labels:
+      severity: critical
+      team: platform
+    annotations:
+      summary: "PostgreSQL is down"
+      description: "PostgreSQL database is not responding"
+
+  - alert: RedisDown
+    expr: up{job="redis-exporter"} == 0
+    for: 1m
+    labels:
+      severity: critical
+      team: platform
+    annotations:
+      summary: "Redis is down"
+      description: "Redis cache is not responding"
+
+  - alert: HighCPUUsage
+    expr: 100 - (avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+    for: 5m
+    labels:
+      severity: warning
+      team: platform
+    annotations:
+      summary: "High CPU usage"
+      description: "CPU usage is above 80% on {{ $labels.instance }}"

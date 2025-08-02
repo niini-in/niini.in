@@ -21,7 +21,8 @@
     "pg-hstore": "^2.3.4",
     "winston": "^3.11.0",
     "swagger-jsdoc": "^6.2.8",
-    "swagger-ui-express": "^5.0.0"
+    "swagger-ui-express": "^5.0.0",
+    "prom-client": "^15.1.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.2",

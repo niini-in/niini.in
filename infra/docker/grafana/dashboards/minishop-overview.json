@@ -1,0 +1,172 @@
+{
+  "id": null,
+  "title": "MiniShop Overview",
+  "tags": ["minishop", "microservices"],
+  "timezone": "browser",
+  "refresh": "30s",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Service Health",
+      "type": "stat",
+      "targets": [
+        {
+          "expr": "up{job=~\"user-service|product-service|order-service|payment-service|notification-service|gateway-service\"}",
+          "legendFormat": "{{ job }}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "steps": [
+              {"color": "red", "value": 0},
+              {"color": "green", "value": 1}
+            ]
+          },
+          "mappings": [
+            {"options": {"0": {"text": "DOWN"}, "1": {"text": "UP"}}, "type": "value"}
+          ]
+        }
+      },
+      "gridPos": {"h": 4, "w": 12, "x": 0, "y": 0}
+    },
+    {
+      "id": 2,
+      "title": "Request Rate",
+      "type": "graph",
+      "targets": [
+        {
+          "expr": "sum(rate(http_requests_total[5m])) by (service)",
+          "legendFormat": "{{ service }}"
+        }
+      ],
+      "yAxes": [
+        {
+          "label": "Requests/sec",
+          "min": 0
+        }
+      ],
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4}
+    },
+    {
+      "id": 3,
+      "title": "Error Rate",
+      "type": "graph",
+      "targets": [
+        {
+          "expr": "sum(rate(http_requests_total{status=~\"5..\"}[5m])) by (service)",
+          "legendFormat": "{{ service }} errors"
+        }
+      ],
+      "yAxes": [
+        {
+          "label": "Errors/sec",
+          "min": 0
+        }
+      ],
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 4}
+    },
+    {
+      "id": 4,
+      "title": "P95 Latency",
+      "type": "graph",
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (service, le))",
+          "legendFormat": "{{ service }} p95"
+        }
+      ],
+      "yAxes": [
+        {
+          "label": "Latency (seconds)",
+          "min": 0
+        }
+      ],
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 12}
+    },
+    {
+      "id": 5,
+      "title": "CPU Usage",
+      "type": "graph",
+      "targets": [
+        {
+          "expr": "100 - (avg by (instance) (rate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)",
+          "legendFormat": "{{ instance }}"
+        }
+      ],
+      "yAxes": [
+        {
+          "label": "CPU %",
+          "min": 0,
+          "max": 100
+        }
+      ],
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 12}
+    },
+    {
+      "id": 6,
+      "title": "Memory Usage",
+      "type": "graph",
+      "targets": [
+        {
+          "expr": "process_resident_memory_bytes / 1024 / 1024",
+          "legendFormat": "{{ job }}"
+        }
+      ],
+      "yAxes": [
+        {
+          "label": "Memory (MB)",
+          "min": 0
+        }
+      ],
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 20}
+    },
+    {
+      "id": 7,
+      "title": "Database Connections",
+      "type": "graph",
+      "targets": [
+        {
+          "expr": "postgresql_connections_active",
+          "legendFormat": "Active Connections"
+        }
+      ],
+      "yAxes": [
+        {
+          "label": "Connections",
+          "min": 0
+        }
+      ],
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 20}
+    },
+    {
+      "id": 8,
+      "title": "Business Metrics",
+      "type": "graph",
+      "targets": [
+        {
+          "expr": "sum(rate(minishop_orders_total[5m]))",
+          "legendFormat": "Orders/sec"
+        },
+        {
+          "expr": "sum(rate(minishop_cart_additions_total[5m]))",
+          "legendFormat": "Cart Additions/sec"
+        }
+      ],
+      "yAxes": [
+        {
+          "label": "Count/sec",
+          "min": 0
+        }
+      ],
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 28}
+    }
+  ]
+}

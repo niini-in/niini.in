@@ -9,6 +9,7 @@ import (
 	"github.com/minishop/product-service/models"
 
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -41,6 +42,7 @@ func main() {
 	r.PUT("/api/products/:id", productHandler.UpdateProduct)
 	r.DELETE("/api/products/:id", productHandler.DeleteProduct)
 	r.GET("/api/products/search", productHandler.SearchProducts)
+	r.GET("/metrics", gin.WrapH(promhttp.Handler()))
 
 	port := os.Getenv("PORT")
 	if port == "" {

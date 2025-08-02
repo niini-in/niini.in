@@ -2,297 +2,573 @@
 
 ## Overview
 
-This document outlines the observability strategy for the MiniShop e-commerce platform, covering monitoring, logging, tracing, and alerting. A robust observability stack is essential for maintaining system reliability, troubleshooting issues, and understanding user behavior.
+This document outlines the comprehensive observability strategy for the MiniShop e-commerce platform, covering monitoring, logging, tracing, and alerting. A robust observability stack is essential for maintaining system reliability, troubleshooting issues, and understanding user behavior in a microservices architecture.
 
-## Observability Pillars
+## 🎯 Observability Pillars
 
-### 1. Metrics
-
-Metrics provide quantitative data about system performance and behavior over time.
+### 1. Metrics (The Four Golden Signals)
+- **Latency**: Time taken to serve requests
+- **Traffic**: How much demand is being placed on your system
+- **Errors**: Rate of requests that fail
+- **Saturation**: How "full" your service is
 
 ### 2. Logging
-
-Logs provide detailed records of events that occur within the system.
+Structured, centralized logging with correlation IDs
 
 ### 3. Tracing
-
-Distributed tracing tracks the flow of requests across multiple services.
+End-to-end request tracking across microservices
 
 ### 4. Alerting
+Proactive notifications based on SLOs and SLIs
 
-Alerts notify operators when metrics exceed predefined thresholds.
+## 🛠️ Technology Stack
 
-## Technology Stack
+### Metrics Collection
+- **Prometheus**: Time-series database for metrics
+- **Grafana**: Visualization and dashboards
+- **Service Exporters**: Application-specific metrics
+- **Node Exporter**: System metrics
 
-### Metrics Collection and Visualization
-
-- **Prometheus**: Time-series database for metrics collection
-- **Grafana**: Visualization and dashboarding
-- **Service Exporters**: Expose service-specific metrics
-  - Spring Boot Actuator (Java services)
-  - Prometheus Go client (Go services)
-  - Prometheus Python client (Python services)
-  - Prom-client (Node.js services)
-
-### Logging
-
-- **Elasticsearch**: Log storage and search
-- **Fluentd/Fluent Bit**: Log collection and forwarding
-- **Kibana**: Log visualization and analysis
+### Logging Stack
+- **Loki**: Log aggregation system
+- **Promtail**: Log collection agent
+- **Grafana**: Log visualization
 
 ### Distributed Tracing
-
-- **Jaeger**: End-to-end distributed tracing
-- **OpenTelemetry**: Instrumentation libraries for services
+- **Jaeger**: Full distributed tracing
+- **OpenTelemetry**: Instrumentation libraries
 
 ### Alerting
+- **Alertmanager**: Alert routing and notifications
+- **Slack/Teams**: Team notifications
+- **PagerDuty**: On-call management
 
-- **Alertmanager**: Alert routing and notification
-- **PagerDuty/OpsGenie**: On-call management
-- **Slack**: Team notifications
+## 📊 Core Metrics Implementation
 
-## Implementation Details
+### Service-Level Metrics
 
-### Metrics Implementation
+#### HTTP Request Metrics
+- `http_requests_total` - Total HTTP requests
+- `http_request_duration_seconds` - Request latency histogram
+- `http_requests_in_progress` - Current active requests
+- `http_response_size_bytes` - Response size
 
-#### Key Metrics to Monitor
+#### Business Metrics
+- `minishop_orders_total` - Total orders processed
+- `minishop_order_value_total` - Total order value
+- `minishop_users_active` - Active users count
+- `minishop_products_viewed_total` - Product views
 
-1. **System Metrics**
-   - CPU, memory, disk usage
-   - Network I/O
-   - Container metrics
+#### System Metrics
+- `process_cpu_seconds_total` - CPU usage
+- `process_resident_memory_bytes` - Memory usage
+- `go_goroutines` / `jvm_threads_current` - Active threads
+- `process_open_fds` - File descriptors
 
-2. **Application Metrics**
-   - Request rate
-   - Error rate
-   - Latency (p50, p90, p99)
-   - Saturation
+### Database Metrics
+- `postgresql_connections_active` - Active DB connections
+- `postgresql_query_duration_seconds` - Query latency
+- `postgresql_transactions_total` - Transaction count
+- `redis_connected_clients` - Redis connections
 
-3. **Business Metrics**
-   - Active users
-   - Order volume
-   - Conversion rate
-   - Revenue
+### Message Queue Metrics
+- `kafka_consumer_lag_sum` - Consumer lag
+- `kafka_broker_messages_in_rate` - Message ingestion rate
+- `kafka_topic_partitions` - Topic partition count
 
-#### Metric Naming Convention
+## 📈 Grafana Dashboards
 
-Follow the pattern: `{namespace}_{subsystem}_{metric_name}_{unit}`
+### 1. System Overview Dashboard
 
-Examples:
-- `minishop_api_request_duration_seconds`
-- `minishop_order_count_total`
+**Dashboard ID**: `minishop-system-overview`
 
-### Logging Implementation
+**Key Panels**:
+- Service Health Overview (UP/DOWN status)
+- Request Rate by Service
+- Error Rate by Service  
+- P95 Latency by Service
+- Resource Utilization (CPU/Memory)
+- Active Connections
 
-#### Log Levels
+**PromQL Queries**:
+```promql
+# Service Health
+up{job=~".*service"}
 
-- **ERROR**: Unexpected errors that require attention
-- **WARN**: Potential issues that don't cause system failure
-- **INFO**: Normal operational events
-- **DEBUG**: Detailed information for troubleshooting (development only)
+# Request Rate
+sum(rate(http_requests_total[5m])) by (service)
 
-#### Structured Logging
+# Error Rate
+sum(rate(http_requests_total{status=~"5.."}[5m])) by (service) / 
+sum(rate(http_requests_total[5m])) by (service)
 
-All logs should be in JSON format with the following fields:
+# P95 Latency
+histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (service, le))
+```
 
+### 2. Service-Specific Dashboards
+
+#### User Service Dashboard
 ```json
 {
-  "timestamp": "2023-05-15T14:22:10.123Z",
-  "level": "INFO",
-  "service": "order-service",
-  "trace_id": "abc123",
-  "span_id": "def456",
-  "user_id": "user123",
-  "message": "Order created successfully",
-  "order_id": "order789",
-  "additional_context": {}
+  "dashboard": {
+    "title": "User Service Metrics",
+    "panels": [
+      {
+        "title": "Request Rate",
+        "targets": [
+          {
+            "expr": "sum(rate(http_requests_total{service=\"user-service\"}[5m]))"
+          }
+        ]
+      },
+      {
+        "title": "Error Rate",
+        "targets": [
+          {
+            "expr": "sum(rate(http_requests_total{service=\"user-service\",status=~\"5..\"}[5m])) / sum(rate(http_requests_total{service=\"user-service\"}[5m]))"
+          }
+        ]
+      },
+      {
+        "title": "P95 Response Time",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{service=\"user-service\"}[5m])) by (le))"
+          }
+        ]
+      },
+      {
+        "title": "Active Users",
+        "targets": [
+          {
+            "expr": "minishop_users_active"
+          }
+        ]
+      }
+    ]
+  }
 }
 ```
 
-### Tracing Implementation
+#### Product Service Dashboard
+```json
+{
+  "dashboard": {
+    "title": "Product Service Metrics",
+    "panels": [
+      {
+        "title": "Product Views Rate",
+        "targets": [
+          {
+            "expr": "sum(rate(minishop_products_viewed_total[5m]))"
+          }
+        ]
+      },
+      {
+        "title": "Inventory Levels",
+        "targets": [
+          {
+            "expr": "minishop_product_inventory_count"
+          }
+        ]
+      },
+      {
+        "title": "Search Response Time",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{service=\"product-service\",path=~\".*search.*\"}[5m])) by (le))"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
 
-#### Trace Context Propagation
+### 3. Business Metrics Dashboard
 
-All services must propagate trace context in HTTP headers:
-- `X-B3-TraceId`
-- `X-B3-SpanId`
-- `X-B3-ParentSpanId`
+**Key Business KPIs**:
+- Daily Active Users (DAU)
+- Order Conversion Rate
+- Average Order Value (AOV)
+- Cart Abandonment Rate
+- Revenue per Day
 
-#### Key Spans to Instrument
+**PromQL Queries**:
+```promql
+# Daily Active Users
+max_over_time(minishop_users_active[1d])
+
+# Order Conversion Rate
+sum(rate(minishop_orders_total[1d])) / sum(rate(minishop_users_active[1d]))
+
+# Average Order Value
+sum(rate(minishop_order_value_total[1d])) / sum(rate(minishop_orders_total[1d]))
+```
+
+### 4. Infrastructure Dashboard
+
+**Components Monitored**:
+- PostgreSQL Performance
+- Redis Cache Hit Rates
+- Kafka Consumer Lag
+- Container Resource Usage
+
+## 🔍 Logging Implementation
+
+### Structured Log Format
+
+All services implement JSON structured logging:
+
+```json
+{
+  "timestamp": "2024-01-15T14:22:10.123Z",
+  "level": "INFO",
+  "service": "user-service",
+  "trace_id": "7a3f1b2c4d5e6f7a",
+  "span_id": "8b4c2d3e5f6a7b8c",
+  "user_id": "user123",
+  "request_id": "req456",
+  "message": "User login successful",
+  "method": "POST",
+  "path": "/api/users/login",
+  "status": 200,
+  "duration_ms": 45,
+  "metadata": {
+    "ip": "192.168.1.100",
+    "user_agent": "Mozilla/5.0..."
+  }
+}
+```
+
+### Log Levels and Usage
+
+- **ERROR**: Critical failures requiring immediate attention
+- **WARN**: Potential issues or degraded performance
+- **INFO**: Normal operational events
+- **DEBUG**: Detailed troubleshooting information (development only)
+
+### Log Aggregation with Loki
+
+**Loki Configuration**:
+```yaml
+# loki-config.yml
+auth_enabled: false
+server:
+  http_listen_port: 3100
+common:
+  path_prefix: /loki
+  storage:
+    filesystem:
+      chunks_directory: /loki/chunks
+      rules_directory: /loki/rules
+  replication_factor: 1
+  ring:
+    instance_addr: 127.0.0.1
+    kvstore:
+      store: inmemory
+query_range:
+  results_cache:
+    cache:
+      embedded_cache:
+        enabled: true
+        max_size_mb: 100
+```
+
+## 🔗 Distributed Tracing
+
+### Jaeger Configuration
+
+**Jaeger Setup**:
+```yaml
+# docker-compose.yml addition
+services:
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    ports:
+      - "16686:16686"
+      - "14268:14268"
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+```
+
+### Trace Context Propagation
+
+**HTTP Headers**:
+- `uber-trace-id`: Jaeger trace context
+- `x-request-id`: Request correlation ID
+- `x-user-id`: User identification
+
+### Key Spans to Instrument
 
 1. **API Gateway**
-   - Incoming requests
-   - Authentication
-   - Routing
+   - Request routing
+   - Authentication/authorization
+   - Rate limiting
 
-2. **Microservices**
-   - Service entry points
-   - Database queries
-   - External API calls
-   - Message publishing/consumption
+2. **Service Entry Points**
+   - HTTP handlers
+   - Message consumers
+   - Scheduled jobs
 
-### Alerting Implementation
+3. **Database Operations**
+   - Query execution time
+   - Connection pool usage
+   - Transaction duration
 
-#### Alert Severity Levels
+4. **External API Calls**
+   - Payment gateway calls
+   - Email service calls
+   - Third-party integrations
 
-1. **Critical**: Immediate action required (24/7)
-2. **Warning**: Action required during business hours
-3. **Info**: No immediate action required
+## 🚨 Alerting Rules
 
-#### Alert Rules Examples
+### Service-Level Alerts
 
+#### Critical Alerts (24/7)
 ```yaml
+# alert-rules.yml
 groups:
-- name: service-alerts
+- name: minishop-critical
   rules:
+  - alert: ServiceDown
+    expr: up{job=~".*service"} == 0
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Service {{ $labels.service }} is down"
+      description: "{{ $labels.service }} has been down for more than 1 minute"
+
   - alert: HighErrorRate
-    expr: sum(rate(http_requests_total{status=~"5.."}[5m])) / sum(rate(http_requests_total[5m])) > 0.05
+    expr: |
+      (
+        sum(rate(http_requests_total{status=~"5.."}[5m])) by (service)
+        /
+        sum(rate(http_requests_total[5m])) by (service)
+      ) > 0.05
     for: 5m
     labels:
       severity: critical
     annotations:
       summary: "High error rate detected"
-      description: "Error rate is above 5% for 5 minutes"
+      description: "{{ $labels.service }} has error rate above 5%"
 
-  - alert: ServiceDown
-    expr: up{job="service"} == 0
-    for: 2m
+  - alert: HighLatency
+    expr: |
+      histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (service, le)) > 1
+    for: 5m
     labels:
       severity: critical
     annotations:
-      summary: "Service down detected"
-      description: "{{ $labels.service }} has been down for more than 2 minutes"
+      summary: "High latency detected"
+      description: "{{ $labels.service }} 95th percentile latency is above 1 second"
 ```
 
-## Dashboards
+#### Warning Alerts (Business Hours)
+```yaml
+- name: minishop-warning
+  rules:
+  - alert: HighMemoryUsage
+    expr: process_resident_memory_bytes / 1024 / 1024 > 512
+    for: 10m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High memory usage"
+      description: "{{ $labels.service }} memory usage is above 512MB"
 
-### System Overview Dashboard
+  - alert: DatabaseConnectionsHigh
+    expr: postgresql_connections_active > 80
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High database connections"
+      description: "PostgreSQL has {{ $value }} active connections"
+```
 
-Provides a high-level view of the entire system:
-- Service health status
-- Error rates
-- Request volumes
-- Resource utilization
+### Business-Level Alerts
 
-### Service-Specific Dashboards
+```yaml
+  - alert: LowOrderVolume
+    expr: sum(rate(minishop_orders_total[1h])) < 10
+    for: 30m
+    labels:
+      severity: warning
+    annotations:
+      summary: "Low order volume"
+      description: "Order volume is below 10 orders per hour"
 
-Detailed metrics for each service:
-- Request/response metrics
-- Business metrics
-- Resource utilization
-- Database performance
+  - alert: HighCartAbandonment
+    expr: |
+      (
+        1 - (sum(rate(minishop_orders_total[1h])) / sum(rate(minishop_cart_additions_total[1h])))
+      ) > 0.7
+    for: 1h
+    labels:
+      severity: warning
+    annotations:
+      summary: "High cart abandonment rate"
+      description: "Cart abandonment rate is above 70%"
+```
 
-### Business Dashboards
+## 🚀 Deployment Guide
 
-Focus on business KPIs:
-- User acquisition and retention
-- Order volume and value
-- Product performance
-- Revenue and conversion metrics
+### Local Development Setup
 
-## Deployment
-
-### Prometheus and Grafana
-
+**Step 1: Start Observability Stack**
 ```bash
-# Create monitoring namespace
-kubectl create namespace monitoring
-
-# Install Prometheus Operator
-helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-helm install prometheus prometheus-community/kube-prometheus-stack \
-  --namespace monitoring \
-  -f infra/observability/prometheus-values.yaml
-
-# Apply custom dashboards
-kubectl apply -f infra/observability/dashboards/
+# Start Prometheus, Grafana, Jaeger, and Loki
+docker-compose -f docker-compose.observability.yml up -d
 ```
 
-### ELK Stack
+**Step 2: Access Dashboards**
+- **Grafana**: http://localhost:3000 (admin/admin)
+- **Prometheus**: http://localhost:9090
+- **Jaeger**: http://localhost:16686
+- **Alertmanager**: http://localhost:9093
 
-```bash
-# Create logging namespace
-kubectl create namespace logging
+### Production Deployment
 
-# Install ELK stack
-helm repo add elastic https://helm.elastic.co
-helm install elasticsearch elastic/elasticsearch --namespace logging
-helm install kibana elastic/kibana --namespace logging
-helm install fluent-bit stable/fluent-bit --namespace logging
+**Step 1: Kubernetes Manifests**
+```yaml
+# monitoring-namespace.yml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: monitoring
+  labels:
+    name: monitoring
 ```
 
-### Jaeger
+**Step 2: Prometheus Configuration**
+```yaml
+# prometheus-config.yml
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
 
-```bash
-# Create tracing namespace
-kubectl create namespace tracing
+rule_files:
+  - "alert-rules.yml"
 
-# Install Jaeger Operator
-kubectl apply -f https://github.com/jaegertracing/jaeger-operator/releases/download/v1.41.0/jaeger-operator.yaml -n tracing
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+          - alertmanager:9093
 
-# Deploy Jaeger instance
-kubectl apply -f infra/observability/jaeger.yaml -n tracing
+scrape_configs:
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+  
+  - job_name: 'user-service'
+    static_configs:
+      - targets: ['user-service:8081']
+    metrics_path: '/actuator/prometheus'
+  
+  - job_name: 'product-service'
+    static_configs:
+      - targets: ['product-service:8082']
+    metrics_path: '/metrics'
+  
+  - job_name: 'order-service'
+    static_configs:
+      - targets: ['order-service:8083']
+    metrics_path: '/actuator/prometheus'
+  
+  - job_name: 'payment-service'
+    static_configs:
+      - targets: ['payment-service:8084']
+    metrics_path: '/metrics'
+  
+  - job_name: 'notification-service'
+    static_configs:
+      - targets: ['notification-service:8085']
+    metrics_path: '/metrics'
 ```
 
-## Access and Security
+## 📋 Monitoring Checklist
 
-### Authentication and Authorization
+### Pre-Production
+- [ ] All services expose `/metrics` endpoint
+- [ ] Prometheus scrape configs updated
+- [ ] Grafana dashboards imported
+- [ ] Alert rules configured and tested
+- [ ] Jaeger tracing enabled
+- [ ] Log aggregation configured
 
-- Grafana: OIDC integration with corporate identity provider
-- Kibana: OIDC integration with corporate identity provider
-- Jaeger: OIDC integration with corporate identity provider
+### Post-Deployment
+- [ ] Verify all services appear in Prometheus targets
+- [ ] Test alert notifications
+- [ ] Validate trace collection
+- [ ] Check log ingestion
+- [ ] Review dashboard accuracy
+- [ ] Set up SLO/SLI tracking
 
-### Network Access
-
-- Internal access only via VPN or internal network
-- Public access via authenticated ingress with TLS
-
-## Best Practices
-
-### Development Guidelines
-
-1. **Instrument from the start**: Include observability in initial development
-2. **Use consistent naming**: Follow established naming conventions
-3. **Log contextually**: Include relevant business context in logs
-4. **Trace critical paths**: Ensure key user journeys are fully traced
-
-### Operational Guidelines
-
-1. **Regular review**: Periodically review dashboards and alerts
-2. **Iterative improvement**: Continuously enhance observability based on incidents
-3. **Documentation**: Keep runbooks updated with troubleshooting procedures
-4. **Training**: Ensure team members understand the observability tools
-
-## Troubleshooting Guide
+## 🔧 Troubleshooting
 
 ### Common Issues
 
-1. **High Latency**
-   - Check service-specific dashboards for bottlenecks
-   - Review traces for slow operations
-   - Check database performance metrics
+**1. Metrics Not Appearing**
+```bash
+# Check service endpoints
+curl http://localhost:8081/actuator/prometheus
 
-2. **High Error Rate**
-   - Check logs for error patterns
-   - Review recent deployments
-   - Check external dependencies
+# Verify Prometheus targets
+http://localhost:9090/targets
+```
 
-3. **Resource Saturation**
-   - Check CPU, memory, and disk usage
-   - Review scaling policies
-   - Check for resource leaks
+**2. High Cardinality**
+- Limit label values
+- Use recording rules for expensive queries
+- Implement metric expiration
 
-## Future Enhancements
+**3. Alert Fatigue**
+- Tune alert thresholds
+- Implement alert routing
+- Use alert inhibition rules
 
-1. **Automated anomaly detection**: Implement ML-based anomaly detection
-2. **Correlation engine**: Automatically correlate metrics, logs, and traces
-3. **SLO monitoring**: Implement service level objective monitoring
-4. **User journey tracking**: End-to-end monitoring of user experiences
+### Performance Optimization
 
-## References
+**1. Prometheus**
+- Use recording rules for complex queries
+- Implement proper retention policies
+- Configure appropriate scrape intervals
 
-- [Prometheus Documentation](https://prometheus.io/docs/)
-- [Grafana Documentation](https://grafana.com/docs/)
-- [Jaeger Documentation](https://www.jaegertracing.io/docs/)
-- [OpenTelemetry Documentation](https://opentelemetry.io/docs/)
-- [ELK Stack Documentation](https://www.elastic.co/guide/index.html)
+**2. Grafana**
+- Use query caching
+- Optimize dashboard queries
+- Implement user-specific dashboards
+
+## 📊 SLO/SLI Examples
+
+### Service Level Objectives
+
+| Service | SLO | SLI | Target |
+|---------|-----|-----|--------|
+| User Service | 99.9% uptime | HTTP 200 responses | 99.9% |
+| Product Service | <500ms latency | P95 response time | 95% < 500ms |
+| Order Service | 99.5% success rate | Successful order creation | 99.5% |
+| Payment Service | 99.9% availability | Payment processing success | 99.9% |
+
+### Error Budgets
+- User Service: 43.2 minutes/month downtime
+- Product Service: 21.6 minutes/month >500ms latency
+- Order Service: 21.6 minutes/month failed orders
+
+## 🔄 Maintenance
+
+### Regular Tasks
+- **Daily**: Review critical alerts
+- **Weekly**: Check SLO compliance
+- **Monthly**: Update dashboards and alert rules
+- **Quarterly**: Review and update SLOs
+
+### Capacity Planning
+- Monitor resource trends
+- Plan for traffic growth
+- Update alert thresholds
+- Scale infrastructure proactively
