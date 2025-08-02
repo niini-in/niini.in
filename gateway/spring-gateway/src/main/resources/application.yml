@@ -17,28 +17,28 @@ spring:
             - Path=/api/users/**
           filters:
             - StripPrefix=2
-        
+
         - id: product-service
           uri: lb://product-service
           predicates:
             - Path=/api/products/**
           filters:
             - StripPrefix=2
-        
+
         - id: order-service
           uri: lb://order-service
           predicates:
             - Path=/api/orders/**
           filters:
             - StripPrefix=2
-        
+
         - id: payment-service
           uri: lb://payment-service
           predicates:
             - Path=/api/payments/**
           filters:
             - StripPrefix=2
-        
+
         - id: notification-service
           uri: lb://notification-service
           predicates:
@@ -57,7 +57,17 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info,gateway
+        include: health,info,gateway,metrics,prometheus
+  metrics:
+    web:
+      server:
+        request:
+          autotime:
+            enabled: true
+    export:
+      prometheus:
+        enabled: true
+        path: /actuator/prometheus
   endpoint:
     health:
       show-details: always

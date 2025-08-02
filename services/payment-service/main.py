@@ -1,10 +1,17 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from prometheus_client import make_asgi_app, Counter, Histogram, Gauge
+import time
 from app.database import engine, Base
 from app.routers import payments
 
 # Create database tables
 Base.metadata.create_all(bind=engine)
+
+# Prometheus metrics
+REQUEST_COUNT = Counter('payment_requests_total', 'Total number of payment requests', ['method', 'endpoint', 'status'])
+REQUEST_DURATION = Histogram('payment_request_duration_seconds', 'Duration of payment requests')
+ACTIVE_CONNECTIONS = Gauge('payment_active_connections', 'Number of active connections')
 
 app = FastAPI(
     title="Payment Service API",
@@ -34,7 +41,27 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Metrics middleware
+@app.middleware("http")
+async def metrics_middleware(request, call_next):
+    start_time = time.time()
+    response = await call_next(request)
+    duration = time.time() - start_time
+    
+    REQUEST_COUNT.labels(
+        method=request.method,
+        endpoint=request.url.path,
+        status=response.status_code
+    ).inc()
+    REQUEST_DURATION.observe(duration)
+    
+    return response
+
 app.include_router(payments.router, prefix="/api/payments", tags=["payments"])
+
+# Mount Prometheus metrics
+metrics_app = make_asgi_app()
+app.mount("/metrics", metrics_app)
 
 @app.get("/")
 def read_root():
